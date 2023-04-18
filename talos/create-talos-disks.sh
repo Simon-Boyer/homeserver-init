@@ -60,7 +60,7 @@ if [[ -z "$xo_host" ]]; them
         curl --insecure \
          -X POST \
          -b authenticationToken=$xo_token \
-         -T control-plane.vmdk \
+         -T talos-amd64.iso \
          "https://$xo_host/rest/v0/srs/$iso_srs/vdis?raw&name_label=talos-controlplane-config.vmdk" \
          | cat
 fi
