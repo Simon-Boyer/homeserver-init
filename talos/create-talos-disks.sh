@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 
 # Example: ./create-talos-disks.sh --out _out --talos_version "v1.3.7" --disk /dev/xvdc --endpoint kube-test.local.codegameeat.com --cluster_name test --xo_host 192.168.1.117 --disk_srs 533309a1-f95a-0c69-90e0-22b35e24bd18 --iso_srs 4c3b22ac-6595-569e-31cc-c091fdbc964b --xo_token $XO_TOKEN
 
