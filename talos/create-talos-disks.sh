@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Example: ./create-talos-disks.sh --out _out --talos_version "v1.3.7" --disk /dev/xvdc --endpoint kube-test.local.codegameeat.com --cluster_name test --xo_host 192.168.1.117 --disk_srs 533309a1-f95a-0c69-90e0-22b35e24bd18 --iso_srs 4c3b22ac-6595-569e-31cc-c091fdbc964b --xo_token $XO_TOKEN
+# Example: ./create-talos-disks.sh --out _out --talos_version "v1.3.7" --disk /dev/xvdc --endpoint kube-test.local.codegameeat.com --cluster_name test --xo_host 192.168.1.117 --disk_srs 533309a1-f95a-0c69-90e0-22b35e24bd18 --xo_token $XO_TOKEN --xo_artefact_suffix v2
 
 while [ $# -gt 0 ]; do
 
@@ -36,32 +36,28 @@ cd _out
 sudo mkisofs -joliet -rock -volid 'metal-iso' -output worker.iso iso-worker/
 sudo mkisofs -joliet -rock -volid 'metal-iso' -output control-plane.iso iso-control-plane/
 
-# Convert isos to bmdk drives
-qemu-img convert -O vmdk worker.iso worker.vmdk
-qemu-img convert -O vmdk control-plane.iso control-plane.vmdk
-
 # Post drives to xen orchestra
 if [[ -n "$xo_host" ]]; then
 
         curl --insecure \
          -X POST \
          -b authenticationToken=$xo_token \
-         -T worker.vmdk \
-         "https://$xo_host/rest/v0/srs/$disk_srs/vdis?raw&name_label=talos-worker-config.vmdk" \
+         -T worker.iso \
+         "https://$xo_host/rest/v0/srs/$disk_srs/vdis?raw&name_label=talos-worker-config_$xo_artefact_suffix" \
          | cat
 
         curl --insecure \
          -X POST \
          -b authenticationToken=$xo_token \
-         -T control-plane.vmdk \
-         "https://$xo_host/rest/v0/srs/$disk_srs/vdis?raw&name_label=talos-controlplane-config.vmdk" \
+         -T control-plane.iso \
+         "https://$xo_host/rest/v0/srs/$disk_srs/vdis?raw&name_label=talos-controlplane-config_$xo_artefact_suffix" \
          | cat
 
         curl --insecure \
          -X POST \
          -b authenticationToken=$xo_token \
          -T talos-amd64.iso \
-         "https://$xo_host/rest/v0/srs/$iso_srs/vdis?raw&name_label=talos.iso" \
+         "https://$xo_host/rest/v0/srs/$disk_srs/vdis?raw&name_label=talos-amd64_$xo_artefact_suffix" \
          | cat
 fi
 
