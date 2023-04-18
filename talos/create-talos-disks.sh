@@ -41,7 +41,7 @@ qemu-img convert -O vmdk worker.iso worker.vmdk
 qemu-img convert -O vmdk control-plane.iso control-plane.vmdk
 
 # Post drives to xen orchestra
-if [[ -z "$xo_host" ]]; then
+if [[ -n "$xo_host" ]]; then
 
         curl --insecure \
          -X POST \
@@ -61,7 +61,7 @@ if [[ -z "$xo_host" ]]; then
          -X POST \
          -b authenticationToken=$xo_token \
          -T talos-amd64.iso \
-         "https://$xo_host/rest/v0/srs/$iso_srs/vdis?raw&name_label=talos-controlplane-config.vmdk" \
+         "https://$xo_host/rest/v0/srs/$iso_srs/vdis?raw&name_label=talos.iso" \
          | cat
 fi
 
