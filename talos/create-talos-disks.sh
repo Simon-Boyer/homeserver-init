@@ -41,7 +41,7 @@ qemu-img convert -O vmdk worker.iso worker.vmdk
 qemu-img convert -O vmdk control-plane.iso control-plane.vmdk
 
 # Post drives to xen orchestra
-if [[ -z "$xo_host" ]]; them
+if [[ -z "$xo_host" ]]; then
 
         curl --insecure \
          -X POST \
