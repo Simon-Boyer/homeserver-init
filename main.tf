@@ -51,28 +51,28 @@ resource "mikrotik_dhcp_server_network" "default" {
 }
 
 resource "macaddress" "controlplanes" {
-  for_each = var.node_data.controlplanes
-  prefix = "00:16:3E"
+  count = var.controlplane.nb_vms
+  prefix = [0, 22, 62]
 }
 
 resource "mikrotik_dhcp_lease" "controlplanes" {
-  for_each = var.node_data.controlplanes
-  address    = each.value.ip
-  macaddress = macaddress.controlplanes[each.key]
-  comment    = each.key
+  count = var.controlplane.nb_vms
+  address    = var.controlplane.start_ip + count.index
+  macaddress = macaddress.controlplanes[count.index].address
+  comment    = format("%s-cp-%s", var.cluster_name, count.index)
   blocked    = "false"
 }
 
 resource "macaddress" "workers" {
-  for_each = var.node_data.workers
-  prefix = "00:16:3E"
+  count = var.worker.nb_vms
+  prefix = [0, 22, 62]
 }
 
 resource "mikrotik_dhcp_lease" "workers" {
-  for_each = var.node_data.workers
-  address    = each.value.ip
-  macaddress = macaddress.workers[each.key]
-  comment    = each.key
+  count = var.worker.nb_vms
+  address    = var.worker.start_ip + count.index
+  macaddress = macaddress.workers[count.index].address
+  comment    = format("%s-worker-%s", var.cluster_name, count.index)
   blocked    = "false"
 }
 
@@ -105,14 +105,14 @@ data "talos_machine_configuration" "worker" {
 # }
 
 resource "talos_machine_configuration_apply" "controlplane" {
-  client_configuration        = talos_machine_secrets.this.client_configuration
+  count                       = var.controlplane.nb_vms
+  client_configuration        = talos_machine_secrets.secrets.client_configuration
   machine_configuration_input = data.talos_machine_configuration.controlplane.machine_configuration
-  for_each                    = var.node_data.controlplanes
-  node                        = each.key
+  node                        = format("%s-cp-%s", var.cluster_name, count.index)
   config_patches = [
     templatefile("machine_config.yaml.tmpl", {
-      hostname     = each.value.hostname == null ? format("%s-cp-%s", var.cluster_name, index(keys(var.node_data.controlplanes), each.key)) : each.value.hostname
-      install_disk = each.value.install_disk
+      hostname     = format("%s-cp-%s", var.cluster_name, count.index)
+      install_disk = "/dev/xvda"
       certSANs = var.certSANs
       oidc-issuer-url = var.oidc-issuer-url
       oidc-client-id = var.oidc-client-id
@@ -121,14 +121,14 @@ resource "talos_machine_configuration_apply" "controlplane" {
 }
 
 resource "talos_machine_configuration_apply" "worker" {
-  client_configuration        = talos_machine_secrets.this.client_configuration
+  count                       = var.worker.nb_vms
+  client_configuration        = talos_machine_secrets.secrets.client_configuration
   machine_configuration_input = data.talos_machine_configuration.worker.machine_configuration
-  for_each                    = var.node_data.workers
-  node                        = each.key
+  node                        = format("%s-cp-%s", var.cluster_name, count.index)
   config_patches = [
     templatefile("machine_config.yaml.tmpl", {
-      hostname     = each.value.hostname == null ? format("%s-cp-%s", var.cluster_name, index(keys(var.node_data.controlplanes), each.key)) : each.value.hostname
-      install_disk = each.value.install_disk
+      hostname     = format("%s-worker-%s", var.cluster_name, count.index)
+      install_disk = "/dev/xvda"
       certSANs = var.certSANs
       oidc-issuer-url = var.oidc-issuer-url
       oidc-client-id = var.oidc-client-id
@@ -136,15 +136,15 @@ resource "talos_machine_configuration_apply" "worker" {
   ]
 }
 
-resource "talos_machine_bootstrap" "this" {
+resource "talos_machine_bootstrap" "bootstrap" {
   depends_on = [talos_machine_configuration_apply.controlplane]
-  client_configuration = talos_machine_secrets.this.client_configuration
-  node                 = [for k, v in var.node_data.controlplanes : k][0]
+  client_configuration = talos_machine_secrets.secrets.client_configuration
+  node                 = talos_machine_configuration_apply.controlplane[0].node
 }
 
-data "talos_cluster_kubeconfig" "this" {
-  client_configuration = talos_machine_secrets.this.client_configuration
-  node                 = [for k, v in var.node_data.controlplanes : k][0]
+data "talos_cluster_kubeconfig" "kubeconfig" {
+  client_configuration = talos_machine_secrets.secrets.client_configuration
+  node                 = talos_machine_configuration_apply.controlplane[0].node
   wait                 = true
 }
 
@@ -162,12 +162,16 @@ resource "null_resource" "talos-iso" {
   }
 
   provisioner "local-exec" {
-    command = "curl -L -o talos.iso https://github.com/siderolabs/talos/releases/download/v${var.talos_version}/talos-amd64.iso"
+    command = "curl -L -o talos.iso ${var.talos_repo}/releases/download/v${var.talos_version}/talos-amd64.iso"
   }
 }
 
 data "xenorchestra_sr" "iso_storage" {
   name_label = var.iso_sr_label
+}
+
+data "xenorchestra_sr" "disks_storage" {
+  name_label = var.disks_sr_label
 }
 
 data "xenorchestra_network" "xen_network" {
@@ -189,20 +193,54 @@ resource "xenorchestra_vdi" "talos-iso" {
   filepath = "talos.iso"
   depends_on = [ null_resource.talos-iso ]
   sr_id = data.xenorchestra_sr.iso_storage.id
+  name_label = "talos-${var.talos_version}.iso"
+  type = "raw"
 }
 
 resource "xenorchestra_vm" "controlplane" {
-  for_each = var.node_data.controlplanes
-  name_label = each.key
+  count = var.controlplane.nb_vms
+  name_label = format("%s-cp-%s", var.cluster_name, count.index)
   template = data.xenorchestra_template.other-template.id
   network {
     network_id = data.xenorchestra_network.xen_network.id
-    mac_address = mikrotik_dhcp_lease.controlplanes[each.key].macaddress
+    mac_address = mikrotik_dhcp_lease.controlplanes[count.index].macaddress
     attached = true
   }
   cdrom {
     id = xenorchestra_vdi.talos-iso.id
   }
+  disk {
+    attached = true
+    name_label = "talos"
+    size = 53687091200 //50GB
+    sr_id = data.xenorchestra_sr.disks_storage
+  }
+  cpus = var.controlplane.cpus
+  memory_max = var.controlplane.memory_max
   auto_poweron = true
-  affinity_host = xenorchestra_hosts.pool.hosts[index(values(var.node_data.controlplanes), each.key) % length(xenorchestra_hosts.pool.hosts)]
+  affinity_host = data.xenorchestra_hosts.pool.hosts[count.index % length(data.xenorchestra_hosts.pool.hosts)]
+}
+
+resource "xenorchestra_vm" "worker" {
+  count = var.worker.nb_vms
+  name_label = format("%s-worker-%s", var.cluster_name, count.index)
+  template = data.xenorchestra_template.other-template.id
+  network {
+    network_id = data.xenorchestra_network.xen_network.id
+    mac_address = mikrotik_dhcp_lease.workers[count.index].macaddress
+    attached = true
+  }
+  cdrom {
+    id = xenorchestra_vdi.talos-iso.id
+  }
+  disk {
+    attached = true
+    name_label = "talos"
+    size = 53687091200 //50GB
+    sr_id = data.xenorchestra_sr.disks_storage
+  }
+  cpus = var.worker.cpus
+  memory_max = var.worker.memory_max
+  auto_poweron = true
+  affinity_host = data.xenorchestra_hosts.pool.hosts[count.index % length(data.xenorchestra_hosts.pool.hosts)]
 }
