@@ -1,0 +1,24 @@
+machine:
+  install:
+    disk: ${install_disk}
+  network:
+    hostname: ${hostname}
+  certSANs: [${join(",", certSANs)}]
+cluster:
+  allowSchedulingOnControlPlanes: true
+  apiServer:
+    certSANs: [${join(",", certSANs)}]
+    extraArgs:
+      oidc-issuer-url: ${oidc-issuer-url}
+      oidc-client-id: ${oidc-client-id}
+      oidc-username-claim: email
+    admissionControl:
+      - name: PodSecurity
+        configuration:
+          exemptions:
+            namespaces:
+              - kube-system
+              - monitoring
+              - storage
+              - gitops
+              - networking
