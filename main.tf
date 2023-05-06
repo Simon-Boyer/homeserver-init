@@ -24,6 +24,10 @@ terraform {
   }
 }
 
+locals {
+  certSANs = concat(mikrotik_dns_record.controlplane-records[*].name, mikrotik_dns_record.worker-records[*].name, var.cluster_endpoint)
+}
+
 // ------------
 // MIKROTIK
 // ------------
@@ -43,9 +47,8 @@ resource "mikrotik_dhcp_server" "default" {
 }
 
 resource "mikrotik_dhcp_server_network" "default" {
-  address    = "192.168.100.0/24"
-  netmask    = "0" # use mask from address
-  gateway    = "192.168.100.1"
+  address    = var.subnet
+  gateway    = cidrhost(var.subnet, 1)
   dns_server = "192.168.100.2"
   comment    = "Default DHCP server network"
 }
@@ -57,7 +60,7 @@ resource "macaddress" "controlplanes" {
 
 resource "mikrotik_dhcp_lease" "controlplanes" {
   count = var.controlplane.nb_vms
-  address    = var.controlplane.start_ip + count.index
+  address    = cidrhost(var.subnet, count.index + 2)
   macaddress = macaddress.controlplanes[count.index].address
   comment    = format("%s-cp-%s", var.cluster_name, count.index)
   blocked    = "false"
@@ -70,10 +73,30 @@ resource "macaddress" "workers" {
 
 resource "mikrotik_dhcp_lease" "workers" {
   count = var.worker.nb_vms
-  address    = var.worker.start_ip + count.index
+  address    = cidrhost(var.subnet, count.index + var.max_controlplanes)
   macaddress = macaddress.workers[count.index].address
   comment    = format("%s-worker-%s", var.cluster_name, count.index)
   blocked    = "false"
+}
+
+resource "mikrotik_dns_record" "cluster-record" {
+  name    = var.cluster_endpoint
+  address = mikrotik_dhcp_lease.controlplanes[0].address
+  ttl     = 300
+}
+
+resource "mikrotik_dns_record" "controlplane-records" {
+  count = var.worker.nb_vms
+  name    = format("%s-cp-%s.%s", var.cluster_name, count.index, var.cluster_endpoint)
+  address = mikrotik_dhcp_lease.controlplanes[count.index].address
+  ttl     = 300
+}
+
+resource "mikrotik_dns_record" "worker-records" {
+  count = var.worker.nb_vms
+  name    = format("%s-worker-%s.%s", var.cluster_name, count.index, var.cluster_endpoint)
+  address = mikrotik_dhcp_lease.workers[count.index].address
+  ttl     = 300
 }
 
 // ------------
@@ -113,7 +136,7 @@ resource "talos_machine_configuration_apply" "controlplane" {
     templatefile("machine_config.yaml.tmpl", {
       hostname     = format("%s-cp-%s", var.cluster_name, count.index)
       install_disk = "/dev/xvda"
-      certSANs = var.certSANs
+      certSANs = local.certSANs
       oidc-issuer-url = var.oidc-issuer-url
       oidc-client-id = var.oidc-client-id
     })
@@ -129,7 +152,7 @@ resource "talos_machine_configuration_apply" "worker" {
     templatefile("machine_config.yaml.tmpl", {
       hostname     = format("%s-worker-%s", var.cluster_name, count.index)
       install_disk = "/dev/xvda"
-      certSANs = var.certSANs
+      certSANs = local.certSANs
       oidc-issuer-url = var.oidc-issuer-url
       oidc-client-id = var.oidc-client-id
     })
@@ -166,24 +189,8 @@ resource "null_resource" "talos-iso" {
   }
 }
 
-data "xenorchestra_sr" "iso_storage" {
-  name_label = var.iso_sr_label
-}
-
-data "xenorchestra_sr" "disks_storage" {
-  name_label = var.disks_sr_label
-}
-
-data "xenorchestra_network" "xen_network" {
-  name_label = var.network_label
-}
-
-data "xenorchestra_pool" "pool" {
-  name_label = var.xen_pool_name
-}
-
 data "xenorchestra_hosts" "pool" {
-  pool_id = data.xenorchestra_pool.pool.id
+  pool_id = var.xen_pool_id
 
   sort_by = "name_label"
   sort_order = "asc"
@@ -192,7 +199,7 @@ data "xenorchestra_hosts" "pool" {
 resource "xenorchestra_vdi" "talos-iso" {
   filepath = "talos.iso"
   depends_on = [ null_resource.talos-iso ]
-  sr_id = data.xenorchestra_sr.iso_storage.id
+  sr_id = var.iso_sr_id
   name_label = "talos-${var.talos_version}.iso"
   type = "raw"
 }
@@ -202,7 +209,7 @@ resource "xenorchestra_vm" "controlplane" {
   name_label = format("%s-cp-%s", var.cluster_name, count.index)
   template = data.xenorchestra_template.other-template.id
   network {
-    network_id = data.xenorchestra_network.xen_network.id
+    network_id =var.network_id
     mac_address = mikrotik_dhcp_lease.controlplanes[count.index].macaddress
     attached = true
   }
@@ -212,8 +219,8 @@ resource "xenorchestra_vm" "controlplane" {
   disk {
     attached = true
     name_label = "talos"
-    size = 53687091200 //50GB
-    sr_id = data.xenorchestra_sr.disks_storage
+    size = var.controlplane.disk_gb * 1000000000 //GB -> B
+    sr_id = var.disks_sr_id
   }
   cpus = var.controlplane.cpus
   memory_max = var.controlplane.memory_max
@@ -226,7 +233,7 @@ resource "xenorchestra_vm" "worker" {
   name_label = format("%s-worker-%s", var.cluster_name, count.index)
   template = data.xenorchestra_template.other-template.id
   network {
-    network_id = data.xenorchestra_network.xen_network.id
+    network_id = var.network_id
     mac_address = mikrotik_dhcp_lease.workers[count.index].macaddress
     attached = true
   }
@@ -236,8 +243,8 @@ resource "xenorchestra_vm" "worker" {
   disk {
     attached = true
     name_label = "talos"
-    size = 53687091200 //50GB
-    sr_id = data.xenorchestra_sr.disks_storage
+    size = var.worker.disk_gb * 1000000000 //GB -> B
+    sr_id = var.disks_sr_id
   }
   cpus = var.worker.cpus
   memory_max = var.worker.memory_max

@@ -22,6 +22,7 @@ variable "controlplane" {
     start_ip = number
     cpus = number
     memory_max = number
+    disk_gb = number
   })
 }
 
@@ -31,11 +32,8 @@ variable "worker" {
     start_ip = number
     cpus = number
     memory_max = number
+    disk_gb = number
   })
-}
-
-variable "certSANs" {
-  type = list(string)
 }
 
 variable "oidc-issuer-url" {
@@ -51,19 +49,27 @@ variable "oidc-client-secret" {
   sensitive = true
 }
 
-variable "iso_sr_label" {
+variable "iso_sr_id" {
   type = string
 }
 
-variable "disks_sr_label" {
+variable "disks_sr_id" {
   type = string
 }
 
-variable "network_label" {
+variable "network_id" {
   type = string
 }
 
-variable "xen_pool_name" {
+variable "xen_pool_id" {
   type = string
 }
 
+variable "subnet" {
+  type = string
+}
+
+variable "max_controlplanes" {
+  type = number
+  default = 20
+}
