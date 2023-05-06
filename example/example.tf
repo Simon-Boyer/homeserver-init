@@ -10,6 +10,8 @@ module "sandbox-cluster" {
   oidc-client-id = "SOME_ID"
   oidc-issuer-url = "https://accounts.google.com"
   subnet = "10.0.1.0/24"
+  mikrotik_network_interfaces = ["ether2", "ether3", "ether4"]
+  vlan = 10
   controlplane = {
     cpus = 1
     disk_gb = 20
