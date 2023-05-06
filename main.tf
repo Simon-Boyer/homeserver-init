@@ -32,9 +32,24 @@ locals {
 // MIKROTIK
 // ------------
 
+resource "mikrotik_bridge" "bridge" {
+  name           = "xen_bridge"
+  fast_forward   = true
+  vlan_filtering = true
+  comment        = "Xen bridge"
+}
+
+resource mikrotik_bridge_port "eth2port" {
+  bridge    = mikrotik_bridge.bridge.name
+  for_each = toset(var.mikrotik_network_interfaces)
+  interface = each.key
+  pvid      = var.vlan
+  comment   = "bridge port"
+}
+
 resource "mikrotik_pool" "bar" {
   name    = "dhcp-pool"
-  ranges  = "10.10.10.100-10.10.10.200"
+  ranges  = "${cidrhost(var.subnet, 0)}-${cidrhost(var.subnet, -1)}"
   comment = "Home devices"
 }
 
@@ -42,14 +57,14 @@ resource "mikrotik_dhcp_server" "default" {
   address_pool  = mikrotik_pool.bar.name
   authoritative = "yes"
   disabled      = false
-  interface     = "ether2"
+  interface     = var.net_interfaces
   name          = "main-dhcp-server"
 }
 
 resource "mikrotik_dhcp_server_network" "default" {
   address    = var.subnet
   gateway    = cidrhost(var.subnet, 1)
-  dns_server = "192.168.100.2"
+  dns_server = cidrhost(var.subnet, 1)
   comment    = "Default DHCP server network"
 }
 

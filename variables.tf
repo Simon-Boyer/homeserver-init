@@ -73,3 +73,11 @@ variable "max_controlplanes" {
   type = number
   default = 20
 }
+
+variable "vlan" {
+  type = number
+}
+
+variable "mikrotik_network_interfaces" {
+  type = list(string)
+}
