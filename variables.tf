@@ -1,38 +1,73 @@
 variable "cluster_name" {
-    type = string
+  type = string
 }
 
 variable "cluster_endpoint" {
-    type = string
+  type = string
 }
 
 variable "talos_version" {
-  type = string
+  type    = string
   default = "1.4.0"
 }
 
 variable "talos_repo" {
-  type = string
+  type    = string
   default = "https://github.com/siderolabs/talos"
 }
 
-variable "controlplane" {
-  type = object({
-    nb_vms = number
-    start_ip = number
-    cpus = number
-    memory_max = number
-    disk_gb = number
-  })
+variable "router_host" {
+  type    = string
+  default = "192.168.88.1"
 }
 
-variable "worker" {
+variable "router_user" {
+  type    = string
+  default = "admin"
+}
+
+variable "router_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "switch_host" {
+  type = string
+}
+
+variable "switch_user" {
+  type    = string
+  default = "admin"
+}
+
+variable "switch_password" {
+  type      = string
+  sensitive = true
+}
+
+variable "servers" {
+  type = list(object({
+    controlplane = bool
+    switch_port  = string
+    mac_addr     = string
+    hostname     = string
+    install_disk = string
+  }))
+}
+
+variable "vlan" {
+  type = number
+}
+
+variable "network_config" {
   type = object({
-    nb_vms = number
-    start_ip = number
-    cpus = number
-    memory_max = number
-    disk_gb = number
+    lease_time     = optional(string, "30d 00:00:00")
+    domain         = string
+    gateway        = string
+    network        = string
+    dns            = string
+    bgp_cluster_as = optional(number, 64500)
+    bgp_router_as  = optional(number, 65530)
   })
 }
 
@@ -45,39 +80,6 @@ variable "oidc-client-id" {
 }
 
 variable "oidc-client-secret" {
-  type = string
+  type      = string
   sensitive = true
-}
-
-variable "iso_sr_id" {
-  type = string
-}
-
-variable "disks_sr_id" {
-  type = string
-}
-
-variable "network_id" {
-  type = string
-}
-
-variable "xen_pool_id" {
-  type = string
-}
-
-variable "subnet" {
-  type = string
-}
-
-variable "max_controlplanes" {
-  type = number
-  default = 20
-}
-
-variable "vlan" {
-  type = number
-}
-
-variable "mikrotik_network_interfaces" {
-  type = list(string)
 }
