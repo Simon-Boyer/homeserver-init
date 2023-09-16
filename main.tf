@@ -115,6 +115,10 @@ resource "routeros_ip_dhcp_server_lease" "servers_leases" {
   address     = cidrhost(var.network_config.network, each.key + 3)
   mac_address = each.value.mac_addr
   comment     = each.value.hostname
+
+  provisioner "local-exec" {
+    command = "until ping -c1 ${cidrhost(var.network_config.network, each.key + 3)}  2>&1; do :; done"
+  }
 }
 
 resource "routeros_ip_dns_record" "server_dns" {
