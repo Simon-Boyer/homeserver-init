@@ -6,16 +6,6 @@ variable "cluster_endpoint" {
   type = string
 }
 
-variable "talos_version" {
-  type    = string
-  default = "1.4.0"
-}
-
-variable "talos_repo" {
-  type    = string
-  default = "https://github.com/siderolabs/talos"
-}
-
 variable "router_host" {
   type    = string
   default = "192.168.88.1"
@@ -55,31 +45,16 @@ variable "servers" {
   }))
 }
 
-variable "vlan" {
-  type = number
-}
-
 variable "network_config" {
   type = object({
     lease_time     = optional(string, "30d 00:00:00")
     domain         = string
     gateway        = string
     network        = string
-    dns            = string
     bgp_cluster_as = optional(number, 64500)
     bgp_router_as  = optional(number, 65530)
+    vlan = number
+    switch_allowed_ports = list(string)
+    router_downlink = string
   })
-}
-
-variable "oidc-issuer-url" {
-  type = string
-}
-
-variable "oidc-client-id" {
-  type = string
-}
-
-variable "oidc-client-secret" {
-  type      = string
-  sensitive = true
 }

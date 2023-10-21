@@ -1,6 +1,7 @@
 machine:
   install:
-    disk: ${install_disk}
+    diskSelector:
+      busPath: ${install_disk}/*
   network:
     hostname: ${hostname}
   certSANs: [${join(",", certSANs)}]
@@ -17,8 +18,9 @@ cluster:
         configuration:
           exemptions:
             namespaces:
-              - kube-system
               - monitoring
-              - storage
-              - gitops
-              - networking
+              - rook-ceph
+              - argocd
+              - projectcontour
+              - operators
+              - metallb-system
