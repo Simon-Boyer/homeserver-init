@@ -85,9 +85,12 @@ spec:
     server: https://kubernetes.default.svc
   project: default
   source:
-    path: guestbook
-    repoURL: ${var.git_repo}/argocd
+    path: argocd
+    repoURL: ${var.git_repo}
     targetRevision: main
+  syncPolicy:
+    automated:
+      selfHeal: true
 EOF
 
   depends_on = [ helm_release.argocd ]

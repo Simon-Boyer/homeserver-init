@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  destination:
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: system
+    repoURL: https://github.com/Simon-Boyer/homeserver-init
+    targetRevision: main
+  syncPolicy:
+    automated:
+      selfHeal: true
