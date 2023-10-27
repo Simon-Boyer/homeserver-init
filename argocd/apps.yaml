@@ -1,18 +1,96 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: apps
-  namespace: argocd
-  finalizers:
-  - resources-finalizer.argocd.argoproj.io
+  name: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   destination:
-    server: https://kubernetes.default.svc
-  project: default
+    namespace: argocd
   source:
-    path: system
+    chart: argo-cd
+    repoURL: https://argoproj.github.io/argo-helm
+    targetRevision: 5.46.8
+    helm:
+      releaseName: argocd
+      parameters:
+      - name: server.service.type
+        value: NodePort
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: apps
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  destination:
+    namespace: argocd
+  source:
     repoURL: https://github.com/Simon-Boyer/homeserver-init
     targetRevision: main
+    path: argocd
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: system-configs
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  source:
+    repoURL: https://github.com/Simon-Boyer/homeserver-init
+    targetRevision: main
+    path: system/configs
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: metallb
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  destination:
+    namespace: metallb
+  source:
+    chart: metallb
+    repoURL: https://metallb.github.io/metallb
+    targetRevision: 0.13.12
+    helm:
+      releaseName: metallb
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: metallb-configs
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  destination:
+    namespace: metallb
+  source:
+    repoURL: https://github.com/Simon-Boyer/homeserver-init
+    targetRevision: main
+    path: system/metallb
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: netdata
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  destination:
+    namespace: netdata
+  source:
+    chart: netdata
+    repoURL: https://netdata.github.io/helmchart
+    targetRevision: 3.7.75
+    helm:
+      releaseName: netdata
   syncPolicy:
-    automated:
-      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: privileged
