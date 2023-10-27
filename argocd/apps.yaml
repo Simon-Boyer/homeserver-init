@@ -88,6 +88,13 @@ spec:
     targetRevision: 3.7.75
     helm:
       releaseName: netdata
+      parameters:
+      - name: parent.database.persistence
+        value: 'false'
+      - name: parent.alarms.persistence
+        value: 'false'
+      - name: k8sState.persistence.enabled
+        value: 'false'
   syncPolicy:
     syncOptions:
     - CreateNamespace=true
