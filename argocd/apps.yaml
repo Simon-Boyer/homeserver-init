@@ -191,3 +191,41 @@ spec:
     repoURL: https://github.com/Simon-Boyer/homeserver-init
     targetRevision: main
     path: system/gateway
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: piped
+  annotations:
+    argocd.argoproj.io/sync-wave: "5"
+spec:
+  destination:
+    namespace: piped
+  source:
+    chart: piped
+    repoURL: https://helm.piped.video
+    targetRevision: 4.0.0
+    helm:
+      releaseName: piped
+      valuesObject:
+        ingress:
+          main:
+            hosts:
+              - host: piped.codegameeat.com
+                paths:
+                  - path: "/"
+          backend:
+            ingressClassName: contour
+            hosts:
+              - host: api.piped.codegameeat.com
+                paths:
+                  - path: "/"
+          ytproxy:
+            ingressClassName: contour
+            hosts:
+              - host: ytproxy.piped.codegameeat.com
+                paths:
+                  - path: "/"
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
