@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: hddtemp
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: hddtemp
+  template:
+    metadata:
+      labels:
+        name: hddtemp
+    spec:
+      tolerations:
+      # these tolerations are to have the daemonset runnable on control plane nodes
+      # remove them if your control plane nodes should not run pods
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: hddtemp
+        ports:
+          - 7634:7634
+        securityContext:
+          privileged: true
+        image: modem7/hddtemp-docker:0.4.3.2
+        resources:
+          limits:
+            memory: 50Mi
+            cpu: 50m
+      hostNewtwork: true

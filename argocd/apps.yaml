@@ -78,7 +78,7 @@ kind: Application
 metadata:
   name: netdata
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "2"
 spec:
   destination:
     namespace: netdata
@@ -101,3 +101,17 @@ spec:
     managedNamespaceMetadata:
       labels:
         pod-security.kubernetes.io/enforce: privileged
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hddtemp
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  destination:
+    namespace: kube-system
+  source:
+    repoURL: https://github.com/Simon-Boyer/homeserver-init
+    targetRevision: main
+    path: system/hddtemp
