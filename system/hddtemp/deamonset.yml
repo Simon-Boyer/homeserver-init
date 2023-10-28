@@ -29,6 +29,9 @@ spec:
         securityContext:
           privileged: true
         image: modem7/hddtemp-docker:0.4.3.2
+        env:
+          - name: HDDTEMP_ARGS
+            value: -q -d -F
         resources:
           limits:
             memory: 50Mi
