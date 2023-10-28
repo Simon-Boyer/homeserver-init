@@ -58,6 +58,12 @@ spec:
     targetRevision: 0.13.12
     helm:
       releaseName: metallb
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: privileged
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
