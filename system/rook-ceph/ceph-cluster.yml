@@ -1,0 +1,30 @@
+apiVersion: ceph.rook.io/v1
+kind: CephCluster
+metadata:
+  name: rook-ceph
+  namespace: rook-ceph
+spec:
+  cephVersion:
+    image: quay.io/ceph/ceph:v16.2.7
+  dataDirHostPath: /var/lib/rook
+  dashboard:
+    enabled: true
+    ssl: false
+    port: 8080
+  mgr:
+    modules:
+      - name: rook
+        enabled: true
+  mon:
+    count: 1
+    allowMultiplePerNode: true
+  storage:
+    useAllNodes: false
+    useAllDevices: false
+    onlyApplyOSDPlacement: false
+    nodes:
+      - name: "talos-01"
+        devices:
+          - name: /dev/disk/by-id/wwn-0x5000039bd8d1c145
+          - name: /dev/disk/by-id/wwn-0x5000039bd8d13c1c
+          - name: /dev/disk/by-id/wwn-0x5002538c403057fe

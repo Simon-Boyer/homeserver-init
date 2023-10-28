@@ -115,3 +115,39 @@ spec:
     repoURL: https://github.com/Simon-Boyer/homeserver-init
     targetRevision: main
     path: system/hddtemp
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rook
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  destination:
+    namespace: rook-ceph
+  source:
+    chart: rook-ceph
+    repoURL: https://charts.rook.io/release
+    targetRevision: 1.12.7
+    helm:
+      releaseName: rook-ceph
+  syncPolicy:
+    syncOptions:
+    - CreateNamespace=true
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: privileged
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ceph-configs
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  destination:
+    namespace: rook-ceph
+  source:
+    repoURL: https://github.com/Simon-Boyer/homeserver-init
+    targetRevision: main
+    path: system/rook-ceph
