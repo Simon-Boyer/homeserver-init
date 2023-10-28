@@ -190,4 +190,4 @@ spec:
   source:
     repoURL: https://github.com/Simon-Boyer/homeserver-init
     targetRevision: main
-    path: system/gatewy
+    path: system/gateway
