@@ -208,6 +208,9 @@ spec:
     helm:
       releaseName: piped
       valuesObject:
+        frontend:
+          env:
+            BACKEND_HOSTNAME: api.piped.codegameeat.com
         ingress:
           main:
             hosts:
