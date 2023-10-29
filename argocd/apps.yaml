@@ -215,9 +215,9 @@ spec:
           config:
             PORT: 8080
             NUM_WORKERS: 2
-            PROXY_PART: https://ytproxy.piped.codegameeat.com
-            API_URL: https://api.piped.codegameeat.com
-            FRONTEND_URL: https://piped.codegameeat.com
+            PROXY_PART: http://ytproxy.piped.codegameeat.com
+            API_URL: http://api.piped.codegameeat.com
+            FRONTEND_URL: http://piped.codegameeat.com
         ingress:
           main:
             hosts:
