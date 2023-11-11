@@ -1,4 +1,0 @@
-resources:
-  - ceph-cluster.yml
-  - block-pools.yml
-  - storage-classes.yml
