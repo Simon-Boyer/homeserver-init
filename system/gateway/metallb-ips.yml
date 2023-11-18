@@ -9,6 +9,16 @@ spec:
   - 192.168.100.2/32
 ---
 apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: internal-ip
+  namespace: metallb-system
+spec:
+  autoAssign: false
+  addresses:
+  - 192.168.100.3/32
+---
+apiVersion: metallb.io/v1beta1
 kind: BGPAdvertisement
 metadata:
   name: external
@@ -16,3 +26,4 @@ metadata:
 spec:
   ipAddressPools:
   - ingress-ip
+  - internal-ip

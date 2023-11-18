@@ -1,3 +1,4 @@
 resources:
   - metallb-ips.yml
   - contour-gateway.yml
+  - internal-gateway.yml
