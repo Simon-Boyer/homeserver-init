@@ -27,7 +27,7 @@ metadata:
   name: internal-contour
   namespace: projectcontour
 spec:
-  gatewayClassName: contour
+  gatewayClassName: internal-contour
   listeners:
     - name: http
       protocol: HTTP
