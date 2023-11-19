@@ -4,6 +4,11 @@ metadata:
   namespace: projectcontour
   name: public-contour-config
 spec:
+  runtimeSettings:
+    ingress:
+      classNames:
+        - contour
+        - external-contour
   envoy:
     networkPublishing:
       serviceAnnotations:
